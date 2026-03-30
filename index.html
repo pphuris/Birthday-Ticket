@@ -381,15 +381,18 @@ body {
   font-size:11px; font-weight:400; color:var(--muted);
 }
 
-/* barcode */
-.bp-barcode {
-  display:flex; align-items:flex-end; gap:1.5px;
-  height:34px; margin-top:auto; padding-top:6px;
-}
-.bp-barcode-bar { background:var(--ink); border-radius:1px; }
-.bp-code-text {
-  font-family:'JetBrains Mono',monospace;
-  font-size:8px; color:var(--muted); letter-spacing:1px; margin-top:3px;
+/* note / limit tag */
+.bp-note {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #fef9ec;
+  border: 1px solid rgba(200,144,42,0.35);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-family: 'Noto Sans Thai', sans-serif;
+  font-size: 11px; font-weight: 600;
+  color: var(--gold);
+  line-height: 1.4;
+  margin-top: auto;
 }
 
 /* stub fields */
@@ -413,9 +416,12 @@ body {
   display:flex; align-items:center; justify-content:space-between;
   border-top:1px dashed var(--line); gap:10px;
 }
-.bp-id-code {
-  font-family:'JetBrains Mono',monospace;
-  font-size:10px; color:var(--muted); letter-spacing:1px;
+/* footer birthday date */
+.bp-bday {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 1.5px; color: var(--muted);
+  display: flex; align-items: center; gap: 5px;
 }
 
 .btn-use {
@@ -674,7 +680,7 @@ body {
 <!-- ═══ APP ═══ -->
 <div id="appPage">
   <div class="topbar">
-    <div class="topbar-brand">🎟 TicketBoard <span></span></div>
+    <div class="topbar-brand">🎟 Birthday Tickets <span></span></div>
     <div class="topbar-right">
       <span class="role-badge" id="roleBadge">USER</span>
       <button class="btn-sm" onclick="doLogout()">Log out</button>
@@ -682,8 +688,8 @@ body {
   </div>
   <div class="admin-nav" id="adminNav" style="display:none">
     <button class="admin-tab active" onclick="switchTab('board')">📋 Board</button>
-    <button class="admin-tab" onclick="switchTab('history')">📜 ประวัติการใช้งาน</button>
-    <button class="admin-tab" onclick="switchTab('manage')">⚙️ จัดการตั๋ว</button>
+    <button class="admin-tab" onclick="switchTab('history')">📜 History</button>
+    <button class="admin-tab" onclick="switchTab('manage')">⚙️ Manage Tickets</button>
   </div>
 
   <!-- Board -->
@@ -691,7 +697,7 @@ body {
     <div class="main">
       <div class="stats-row" id="statsRow"></div>
       <div class="section-title">
-        Boarding Passes
+        Birthday Tickets
         <span class="pill" id="availPill">— available</span>
       </div>
       <div class="bp-grid" id="bpGrid"></div>
@@ -761,6 +767,10 @@ body {
         <label class="form-label">รายละเอียด</label>
         <textarea class="form-textarea" id="addDesc" placeholder="ของรางวัลหรือสิทธิพิเศษ..."></textarea>
       </div>
+      <div class="form-row">
+        <label class="form-label">⚠︎ หมายเหตุ / เงื่อนไข (ถ้ามี)</label>
+        <input class="form-input" id="addNote" placeholder="เช่น ใช้ได้ครั้งเดียว · หมดอายุ 31 Dec 2025">
+      </div>
       <div class="modal-actions">
         <button class="btn-cancel2" onclick="closeOverlay('addOverlay')">Cancel</button>
         <button class="btn-ok" onclick="confirmAdd()">➕ ADD</button>
@@ -807,15 +817,8 @@ const CONFIG = {
    DEFAULT TICKETS
 ══════════════════════════════════ */
 const DEFAULT_TICKETS = [
-  { id:'BP-01', icon:'☕', title:'COFFEE PASS',  desc:'กาแฟฟรี 1 แก้ว ไม่จำกัดเมนู', isUsed:false, usedAt:null },
-  { id:'BP-02', icon:'🎬', title:'CINEMA PASS',  desc:'ดูหนัง 2 ที่นั่ง รอบใดก็ได้ตลอดเดือน', isUsed:false, usedAt:null },
-  { id:'BP-03', icon:'🍕', title:'PIZZA PASS',   desc:'ออเดอร์พิซซ่า 1 ถาด ไม่มีเงื่อนไข', isUsed:false, usedAt:null },
-  { id:'BP-04', icon:'💆', title:'SPA PASS',     desc:'นวดผ่อนคลาย 60 นาที ที่สปาที่เลือก', isUsed:false, usedAt:null },
-  { id:'BP-05', icon:'📚', title:'BOOK PASS',    desc:'หนังสือ 1 เล่ม จากร้านค้าพันธมิตร', isUsed:false, usedAt:null },
-  { id:'BP-06', icon:'🎮', title:'GAME PASS',    desc:'เกม PC/Console มูลค่าไม่เกิน 500฿', isUsed:false, usedAt:null },
-  { id:'BP-07', icon:'🌿', title:'YOGA PASS',    desc:'คอร์สโยคะ 5 ครั้ง ณ สตูดิโอที่เลือก', isUsed:false, usedAt:null },
-  { id:'BP-08', icon:'✈️', title:'UPGRADE PASS', desc:'อัปเกรดที่นั่งบินฟรี ครั้งถัดไป', isUsed:false, usedAt:null },
-];
+  { id:'BT-01', icon:'💆', title:'MASSAGE PASS',  desc:'นวดผ่อนคลายทั้งตัว จำกัด 40 นาที', note:'ใช้ได้ครั้งเดียว · หมดอายุ 31 Dec 2025', isUsed:false, usedAt:null },
+ ];
 
 /* ══════════════════════════════════
    STATE
@@ -873,22 +876,6 @@ function doLogout() {
 }
 
 /* ══════════════════════════════════
-   BARCODE
-══════════════════════════════════ */
-function makeBarcode(seed) {
-  const rng = s => { let x=Math.sin(s)*10000; return x-Math.floor(x); };
-  let html=''; const count=32;
-  for(let i=0;i<count;i++){
-    const r=rng(seed*137+i);
-    const h=16+Math.floor(r*20);
-    const w=r>0.65?3:r>0.35?2:1;
-    const gap=r<0.18?2:1;
-    html+=`<div class="bp-barcode-bar" style="width:${w}px;height:${h}px;margin-right:${gap}px"></div>`;
-  }
-  return html;
-}
-
-/* ══════════════════════════════════
    RENDER
 ══════════════════════════════════ */
 function renderAll() {
@@ -914,8 +901,6 @@ function renderBoard() {
   const avail = tickets.filter(t=>!t.isUsed).length;
 
   grid.innerHTML = tickets.map((t,i)=>{
-    const n = parseInt(t.id.replace(/\D/g,''))||i+1;
-    const code = t.id+'-'+(n*7919%9999).toString().padStart(4,'0');
     return `
     <div class="bp-wrap ${t.isUsed?'used':'avail'}" style="animation-delay:${i*40}ms">
       <div class="bp">
@@ -941,19 +926,22 @@ function renderBoard() {
                 <div class="bp-field-val ${t.isUsed?'red':''}">${t.isUsed?'USED':'OPEN'}</div>
               </div>
             </div>
+
             <div class="bp-field">
               <div class="bp-field-label">DESCRIPTION</div>
               <div class="bp-field-val big">${t.desc}</div>
             </div>
+
+            ${t.note ? `
+            <div class="bp-note">
+              ⚠︎ &nbsp;${t.note}
+            </div>` : ''}
+
             ${t.isUsed&&t.usedAt?`
             <div class="bp-field">
               <div class="bp-field-label">USED AT</div>
               <div class="bp-field-val mono">${fmtDate(t.usedAt)}</div>
             </div>`:''}
-            <div>
-              <div class="bp-barcode">${makeBarcode(n)}</div>
-              <div class="bp-code-text">${code}</div>
-            </div>
           </div>
 
           <div class="bp-divider"></div>
@@ -979,7 +967,7 @@ function renderBoard() {
         </div>
 
         <div class="bp-footer">
-          <div class="bp-id-code">${code}</div>
+          <div class="bp-bday">🎂 &nbsp;05 MAY 1999</div>
           <button class="btn-use"
             ${t.isUsed?'disabled':`onclick="openConfirm('${t.id}')"`}>
             ${t.isUsed?'✗ Used':'✓ Use'}
@@ -1067,17 +1055,18 @@ function confirmDelete() {
   showToast('🗑️','Ticket Deleted');
 }
 function openAddModal() {
-  ['addIcon','addTitle','addDesc'].forEach(id=>document.getElementById(id).value='');
+  ['addIcon','addTitle','addDesc','addNote'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('addOverlay').classList.add('active');
 }
 function confirmAdd() {
   const icon  = document.getElementById('addIcon').value.trim()||'🎁';
   const title = document.getElementById('addTitle').value.trim().toUpperCase()||'SPECIAL PASS';
   const desc  = document.getElementById('addDesc').value.trim();
+  const note  = document.getElementById('addNote').value.trim();
   if(!desc){ alert('กรุณากรอกรายละเอียด'); return; }
   const max=tickets.reduce((m,t)=>{const n=parseInt(t.id.replace(/\D/g,''))||0;return Math.max(m,n);},0);
-  const newId='BP-'+String(max+1).padStart(2,'0');
-  tickets.push({id:newId,icon,title,desc,isUsed:false,usedAt:null});
+  const newId='BT-'+String(max+1).padStart(2,'0');
+  tickets.push({id:newId,icon,title,desc,note:note||null,isUsed:false,usedAt:null});
   saveTickets(); closeOverlay('addOverlay'); renderAll();
   showToast('➕',`Add Ticket ${newId} Done`);
 }
