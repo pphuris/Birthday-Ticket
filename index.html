@@ -656,7 +656,6 @@ body {
   .admin-tab { padding:12px 16px; font-size:12px; white-space:nowrap; }
   .main { padding:28px 20px; }
   .bp-grid { grid-template-columns:1fr; gap:16px; }
-  .bp-stub { width:108px; }
   .modal { max-width:95vw; }
   .modal-body-wrap { padding:24px 24px 28px; }
 }
@@ -695,35 +694,44 @@ body {
   .stat-card-num { font-size:24px; }
   .stat-card-label { font-size:9px; letter-spacing:0.8px; margin-top:2px; }
 
-  /* Boarding pass — full width, NO stub on side */
+  /* Grid */
   .bp-grid { grid-template-columns:1fr; gap:14px; margin-bottom:24px; }
 
-  /* Hide side divider + collapse stub into footer strip */
+  /* Boarding pass: stack vertically — main on top, stub strip below */
+  .bp-body {
+    flex-direction: column;
+  }
   .bp-divider { display:none; }
+  .bp-main {
+    width: 100%;
+    padding: 14px;
+    gap: 10px;
+    min-height: unset;
+  }
   .bp-stub {
-    width:100% !important;
-    flex-direction:row;
-    flex-wrap:wrap;
-    gap:6px 14px;
-    padding:9px 14px;
-    border-top:1px dashed var(--line);
-    background:var(--stub);
-    border-radius:0;
+    width: 100% !important;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    padding: 10px 14px;
+    border-top: 1px dashed var(--line);
+    background: var(--stub);
   }
   .stub-field {
-    flex-direction:column;
-    align-items:flex-start;
-    gap:1px;
-    min-width:fit-content;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    min-width: unset;
   }
   .stub-label { font-size:8px; }
   .stub-val   { font-size:11px; }
 
-  /* bp-main fields */
+  /* Header */
   .bp-header { padding:10px 14px; }
   .bp-header-icon { font-size:17px; }
   .bp-header-title { font-size:12px; letter-spacing:2px; }
-  .bp-main { padding:14px; gap:10px; }
+
+  /* Fields */
   .bp-field-label { font-size:8.5px; }
   .bp-field-val   { font-size:14px; }
   .bp-field-val.big { font-size:13px; }
@@ -746,8 +754,8 @@ body {
   .btn-cancel2,.btn-ok { font-size:13px; padding:10px; }
   .form-input,.form-textarea { font-size:13px; padding:10px 12px; }
 
-  /* Tables — scroll horizontally */
-  .data-table { font-size:12px; display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  /* Tables */
+  .data-table { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .data-table th { padding:9px 10px; font-size:9px; white-space:nowrap; }
   .data-table td { padding:9px 10px; white-space:nowrap; }
 
@@ -986,7 +994,7 @@ function startSession(role) {
   document.getElementById('pwInput').value='';
   document.getElementById('loginErr').classList.remove('show');
   const b = document.getElementById('roleBadge');
-  b.textContent = role==='admin' ? '⚙️ Admin' : '👤 User';
+  b.textContent = role==='admin' ? '🐰 Phuris' : '🦊 P\'Boss';
   b.className = 'role-badge ' + role;
   document.getElementById('adminNav').style.display = role==='admin' ? 'flex' : 'none';
   switchTab('board');
@@ -1043,9 +1051,7 @@ function renderBoard() {
             <div class="bp-row">
               <div class="bp-field grow">
                 <div class="bp-field-label">TICKET ID</div>
-                <div class="bp-field-val gold" style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
-                  ${t.id}<span class="bp-owner">Kongdech / Srisawad</span>
-                </div>
+                <div class="bp-field-val gold">${t.id}</div>
               </div>
               <div class="bp-field">
                 <div class="bp-field-label">STATUS</div>
@@ -1086,10 +1092,6 @@ function renderBoard() {
               <div class="stub-val ${t.isUsed?'red':''}">${t.isUsed?'USED':'OPEN'}</div>
             </div>
             <div class="stub-field" style="margin-top:auto">
-              <div class="stub-label">DATE OF BIRTH</div>
-              <div class="stub-val" style="font-size:10px;color:var(--gold)">05-May-1999</div>
-            </div>
-            <div class="stub-field">
               <div class="stub-label">VALID</div>
               <div class="stub-val" style="font-size:10px">${t.isUsed?'EXPIRED':'ACTIVE'}</div>
             </div>
