@@ -637,13 +637,126 @@ body {
 }
 .empty .e-icon { font-size:48px; margin-bottom:12px; }
 
-@media(max-width:620px){
-  .topbar { padding:0 16px; }
-  .main { padding:24px 14px; }
-  .admin-nav { padding:0 14px; overflow-x:auto; }
-  .modal-body-wrap { padding:22px 20px 26px; }
-  .bp-stub { width:96px; }
-  .bp-grid { grid-template-columns:1fr; }
+/* ═══════════════════════════════════════
+   RESPONSIVE — Tablet (≤768px)
+═══════════════════════════════════════ */
+@media(max-width:768px){
+  .login-wrap { max-width:480px; }
+  .login-logo { font-size:36px; }
+  .topbar { padding:0 20px; height:54px; }
+  .topbar-brand { font-size:20px; }
+  .topbar-brand span { display:none; }
+  .admin-nav { padding:0 20px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .admin-tab  { padding:12px 16px; font-size:12px; white-space:nowrap; }
+  .main { padding:28px 20px; }
+  .stats-row { gap:12px; margin-bottom:24px; }
+  .stat-card { padding:16px; }
+  .stat-card-num { font-size:32px; }
+  .bp-grid { grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+  .bp-stub { width:108px; }
+  .modal { max-width:95vw; }
+  .modal-body-wrap { padding:24px 24px 28px; }
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE — Mobile (≤480px)
+═══════════════════════════════════════ */
+@media(max-width:480px){
+  /* Login */
+  .login-wrap { max-width:100%; }
+  .login-logo { font-size:30px; }
+  .login-tagline { font-size:10px; letter-spacing:2px; }
+  .login-card-body { padding:24px 20px 20px; }
+  .login-card-header { padding:14px 20px; }
+  .login-card-header-title { font-size:13px; letter-spacing:2px; }
+  .role-tab { font-size:12px; padding:8px; }
+  .f-input { font-size:14px; padding:10px 13px; }
+  .btn-login { font-size:15px; padding:12px; }
+
+  /* Topbar */
+  .topbar { padding:0 16px; height:50px; }
+  .topbar-brand { font-size:17px; }
+  .role-badge { font-size:10px; padding:3px 9px; letter-spacing:1px; }
+  .btn-sm { font-size:12px; padding:6px 11px; }
+
+  /* Admin nav */
+  .admin-nav { padding:0 12px; }
+  .admin-tab { padding:11px 13px; font-size:11px; }
+
+  /* Main */
+  .main { padding:20px 14px; }
+  .section-title { font-size:17px; }
+
+  /* Stats */
+  .stats-row { grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:20px; }
+  .stat-card { padding:12px 10px; border-radius:10px; }
+  .stat-card-num { font-size:26px; }
+  .stat-card-label { font-size:9px; letter-spacing:1px; }
+
+  /* Boarding pass grid */
+  .bp-grid { grid-template-columns:1fr; gap:14px; margin-bottom:28px; }
+  .bp-header { padding:10px 14px; }
+  .bp-header-icon { font-size:17px; }
+  .bp-header-title { font-size:12px; letter-spacing:2px; }
+  .bp-main { padding:14px 14px; gap:10px; }
+
+  /* Stub: collapse into horizontal bottom strip */
+  .bp-divider { display:none; }
+  .bp-stub {
+    width:100%;
+    flex-direction:row;
+    flex-wrap:wrap;
+    gap:8px 16px;
+    padding:10px 14px;
+    border-top:1px dashed var(--line);
+  }
+  .stub-field { flex-direction:row; align-items:center; gap:4px; }
+  .stub-label { font-size:8px; white-space:nowrap; }
+  .stub-val   { font-size:11px; }
+
+  /* Fields */
+  .bp-field-label { font-size:8px; }
+  .bp-field-val   { font-size:13px; }
+  .bp-field-val.big { font-size:12px; }
+  .bp-note { font-size:10px; padding:5px 9px; }
+
+  /* Footer */
+  .bp-footer { padding:10px 14px; }
+  .bp-bday   { font-size:11px; letter-spacing:1px; }
+  .btn-use   { font-size:12px; padding:8px 14px; }
+  .bp-stamp  { font-size:20px; }
+
+  /* Modal */
+  .modal { border-radius:14px; }
+  .modal-header { padding:15px 20px; }
+  .modal-header-title { font-size:13px; letter-spacing:2px; }
+  .modal-body-wrap { padding:20px 18px 24px; }
+  .modal-title { font-size:18px; }
+  .modal-body  { font-size:13px; }
+  .modal-highlight { font-size:13px; padding:10px 13px; }
+  .btn-cancel2,.btn-ok { font-size:13px; padding:10px; }
+  .form-input,.form-textarea { font-size:13px; padding:10px 12px; }
+
+  /* Tables */
+  .data-table th { padding:10px 12px; font-size:9px; }
+  .data-table td { padding:10px 12px; font-size:12px; }
+
+  /* Manage toolbar */
+  .manage-toolbar { flex-direction:column; align-items:flex-start; gap:10px; }
+  .btn-add { font-size:13px; padding:9px 16px; width:100%; justify-content:center; }
+
+  /* Toast */
+  .toast { font-size:12px; padding:10px 18px; bottom:20px; max-width:88vw; white-space:normal; text-align:center; }
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE — Very small (≤360px)
+═══════════════════════════════════════ */
+@media(max-width:360px){
+  .topbar-brand { font-size:15px; }
+  .stats-row { gap:6px; }
+  .stat-card-num { font-size:22px; }
+  .bp-header-title { font-size:11px; letter-spacing:1.5px; }
 }
 </style>
 </head>
@@ -809,7 +922,7 @@ body {
    CONFIG
 ══════════════════════════════════ */
 const CONFIG = {
-  userPassword:  'Boss0405',
+  userPassword:  'Boss888',
   adminPassword: 'admin220345',
 };
 
