@@ -970,7 +970,26 @@ body {
   <span id="toastMsg">Completed</span>
 </div>
 
-<script>
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp }                        from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getDatabase, ref, set, remove, onValue, update }
+                                                from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+/* ══════════════════════════════════
+   🔥 FIREBASE CONFIG
+   ← วางค่าจาก Firebase Console ตรงนี้
+══════════════════════════════════ */
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyCqMf2yLSwZu-gB7z-77wji9qvcv0aMVe0",
+  authDomain:        "birthday-tickets.firebaseapp.com",
+  databaseURL:       "https://birthday-tickets-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "birthday-tickets",
+  storageBucket:     "birthday-tickets.firebasestorage.app",
+  messagingSenderId: "1001379764082",
+  appId:             "1:1001379764082:web:009a8d866085fde7ccafeb"
+};
+
 /* ══════════════════════════════════
    CONFIG
 ══════════════════════════════════ */
@@ -980,26 +999,54 @@ const CONFIG = {
 };
 
 /* ══════════════════════════════════
-   DEFAULT TICKETS
+   DEFAULT TICKETS (ใช้ครั้งแรกเท่านั้น)
 ══════════════════════════════════ */
 const DEFAULT_TICKETS = [
-  { id:'BT-01', icon:'💆', title:'MASSAGE PASS',  desc:'นวดผ่อนคลายทั้งตัว 40 นาที', note:'ใช้ได้ครั้งเดียว · หมดอายุ 05 May 2027', isUsed:false, usedAt:null },
- ];
+  { id:'BT-01', icon:'💆', title:'MASSAGE PASS', desc:'นวดผ่อนคลายทั้งตัว 40 นาที', note:'ใช้ได้ครั้งเดียว · หมดอายุ 05 May 2027', isUsed:false, usedAt:null },
+];
+
+/* ══════════════════════════════════
+   INIT FIREBASE
+══════════════════════════════════ */
+const app = initializeApp(FIREBASE_CONFIG);
+const db  = getDatabase(app);
+const dbRef = ref(db, 'tickets');   // path ใน database
 
 /* ══════════════════════════════════
    STATE
 ══════════════════════════════════ */
-let currentLogin = null;
-let currentRole  = 'user';
-let tickets = [];
-let pendingUseId = null;
+let currentLogin    = null;
+let currentRole     = 'user';
+let tickets         = [];
+let pendingUseId    = null;
 let pendingDeleteId = null;
 let pendingEditId   = null;
 
-function saveTickets() { localStorage.setItem('tb_v4_tickets', JSON.stringify(tickets)); }
-function loadTickets() {
-  const raw = localStorage.getItem('tb_v4_tickets');
-  tickets = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_TICKETS));
+/* ══════════════════════════════════
+   FIREBASE: SAVE / LOAD
+   — แทน localStorage ทั้งหมด
+══════════════════════════════════ */
+async function saveTickets() {
+  // เขียน tickets array ทั้งหมดลง Firebase ในครั้งเดียว
+  const obj = {};
+  tickets.forEach(t => { obj[t.id] = t; });
+  await set(dbRef, obj);
+}
+
+function startRealtimeListener() {
+  // ฟัง real-time: ทุกครั้งที่ Firebase เปลี่ยน → re-render ทันที
+  onValue(dbRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      tickets = Object.values(data);
+      tickets.sort((a, b) => a.id.localeCompare(b.id));
+    } else {
+      // ยังไม่มีข้อมูลใน Firebase → เขียน default ลงไป
+      tickets = JSON.parse(JSON.stringify(DEFAULT_TICKETS));
+      saveTickets();
+    }
+    if (currentLogin) renderAll();
+  });
 }
 
 /* ══════════════════════════════════
@@ -1012,6 +1059,7 @@ function setRole(r) {
   });
   document.getElementById('loginErr').classList.remove('show');
 }
+window.setRole = setRole;
 
 function doLogin() {
   const pw = document.getElementById('pwInput').value;
@@ -1020,27 +1068,29 @@ function doLogin() {
   document.getElementById('loginErr').classList.add('show');
   document.getElementById('pwInput').value='';
 }
+window.doLogin = doLogin;
 
 function startSession(role) {
   currentLogin = role;
-  loadTickets();
   document.getElementById('loginPage').classList.remove('active');
   document.getElementById('appPage').classList.add('active');
   document.getElementById('pwInput').value='';
   document.getElementById('loginErr').classList.remove('show');
   const b = document.getElementById('roleBadge');
-  b.textContent = role==='admin' ? '🐰 Phuris' : '🦊 P\'Boss';
+  b.textContent = role==='admin' ? '🐰 Phuris' : "🦊 P'Boss";
   b.className = 'role-badge ' + role;
   document.getElementById('adminNav').style.display = role==='admin' ? 'flex' : 'none';
   switchTab('board');
-  renderAll();
+  // renderAll จะถูกเรียกโดย onValue listener อัตโนมัติ
 }
+window.startSession = startSession;
 
 function doLogout() {
   currentLogin = null;
   document.getElementById('appPage').classList.remove('active');
   document.getElementById('loginPage').classList.add('active');
 }
+window.doLogout = doLogout;
 
 /* ══════════════════════════════════
    RENDER
@@ -1063,15 +1113,13 @@ function renderStats() {
 }
 
 function renderBoard() {
-  const grid = document.getElementById('bpGrid');
+  const grid  = document.getElementById('bpGrid');
   const empty = document.getElementById('emptyMsg');
   const avail = tickets.filter(t=>!t.isUsed).length;
 
-  grid.innerHTML = tickets.map((t,i)=>{
-    return `
+  grid.innerHTML = tickets.map((t,i)=>`
     <div class="bp-wrap ${t.isUsed?'used':'avail'}" style="animation-delay:${i*40}ms">
       <div class="bp">
-
         <div class="bp-header">
           <div class="bp-header-left">
             <div class="bp-header-icon">${t.icon}</div>
@@ -1079,7 +1127,6 @@ function renderBoard() {
           </div>
           <div class="bp-header-right">❤︎</div>
         </div>
-
         <div class="bp-body">
           <div class="bp-main">
             <div class="bp-stamp">USED</div>
@@ -1093,56 +1140,33 @@ function renderBoard() {
                 <div class="bp-field-val ${t.isUsed?'red':''}">${t.isUsed?'USED':'OPEN'}</div>
               </div>
             </div>
-
             <div class="bp-field">
               <div class="bp-field-label">DESCRIPTION</div>
               <div class="bp-field-val big">${t.desc}</div>
             </div>
-
-            ${t.note ? `
-            <div class="bp-note">
-              ⚠︎ &nbsp;${t.note}
-            </div>` : ''}
-
+            ${t.note?`<div class="bp-note">⚠︎ &nbsp;${t.note}</div>`:''}
             ${t.isUsed&&t.usedAt?`
             <div class="bp-field">
               <div class="bp-field-label">USED AT</div>
               <div class="bp-field-val mono">${fmtDate(t.usedAt)}</div>
             </div>`:''}
           </div>
-
           <div class="bp-divider"></div>
-
           <div class="bp-stub">
-            <div class="stub-field">
-              <div class="stub-label">PASS</div>
-              <div class="stub-val gold">${t.id}</div>
-            </div>
-            <div class="stub-field">
-              <div class="stub-label">TYPE</div>
-              <div class="stub-val" style="font-size:10px">${(t.title||'SPECIAL').substring(0,10)}</div>
-            </div>
-            <div class="stub-field">
-              <div class="stub-label">STATUS</div>
-              <div class="stub-val ${t.isUsed?'red':''}">${t.isUsed?'USED':'OPEN'}</div>
-            </div>
-            <div class="stub-field" style="margin-top:auto">
-              <div class="stub-label">VALID</div>
-              <div class="stub-val" style="font-size:10px">${t.isUsed?'EXPIRED':'ACTIVE'}</div>
-            </div>
+            <div class="stub-field"><div class="stub-label">PASS</div><div class="stub-val gold">${t.id}</div></div>
+            <div class="stub-field"><div class="stub-label">TYPE</div><div class="stub-val" style="font-size:10px">${(t.title||'SPECIAL').substring(0,10)}</div></div>
+            <div class="stub-field"><div class="stub-label">STATUS</div><div class="stub-val ${t.isUsed?'red':''}">${t.isUsed?'USED':'OPEN'}</div></div>
+            <div class="stub-field" style="margin-top:auto"><div class="stub-label">VALID</div><div class="stub-val" style="font-size:10px">${t.isUsed?'EXPIRED':'ACTIVE'}</div></div>
           </div>
         </div>
-
         <div class="bp-footer">
           <div class="bp-bday">🎂 &nbsp;05 MAY 1999</div>
-          <button class="btn-use"
-            ${t.isUsed?'disabled':`onclick="openConfirm('${t.id}')"`}>
+          <button class="btn-use" ${t.isUsed?'disabled':`onclick="openConfirm('${t.id}')"`}>
             ${t.isUsed?'✗ Used':'✓ Use'}
           </button>
         </div>
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
 
   empty.style.display = avail===0 ? 'block' : 'none';
 }
@@ -1152,9 +1176,7 @@ function renderHistory() {
   if(!tickets.length){ el.innerHTML='<div class="empty"><div class="e-icon">📭</div>ยังไม่มีประวัติ</div>'; return; }
   el.innerHTML=`
     <table class="data-table">
-      <thead><tr>
-        <th>ID</th><th>Icon</th><th>Title</th><th>Detail</th><th>Status</th><th>Used when</th>
-      </tr></thead>
+      <thead><tr><th>ID</th><th>Icon</th><th>Title</th><th>Detail</th><th>Status</th><th>Used when</th></tr></thead>
       <tbody>${tickets.map(t=>`
         <tr>
           <td><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">${t.id}</span></td>
@@ -1171,9 +1193,7 @@ function renderHistory() {
 function renderManage() {
   document.getElementById('manageContent').innerHTML=`
     <table class="data-table">
-      <thead><tr>
-        <th>ID</th><th>Icon</th><th>Title</th><th>Detail</th><th>Status</th><th>Management</th>
-      </tr></thead>
+      <thead><tr><th>ID</th><th>Icon</th><th>Title</th><th>Detail</th><th>Status</th><th>Management</th></tr></thead>
       <tbody>${tickets.map(t=>`
         <tr>
           <td><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">${t.id}</span></td>
@@ -1182,7 +1202,7 @@ function renderManage() {
           <td style="color:var(--muted);font-size:12px">${t.desc}</td>
           <td><span class="${t.isUsed?'badge-used':'badge-avail'}">${t.isUsed?'Used':'Available'}</span></td>
           <td>
-            <button class="btn-action btn-edit" onclick="openEditModal('${t.id}')">✏️ Edit</button>
+            <button class="btn-action btn-edit"   onclick="openEditModal('${t.id}')">✏️ Edit</button>
             ${t.isUsed?`<button class="btn-action btn-reset" onclick="resetTicket('${t.id}')">↺ Reset</button>`:''}
             <button class="btn-action btn-delete" onclick="openDeleteModal('${t.id}')">🗑 Delete</button>
           </td>
@@ -1192,7 +1212,8 @@ function renderManage() {
 }
 
 /* ══════════════════════════════════
-   ACTIONS
+   ACTIONS — แต่ละ action เขียน
+   ลง Firebase แทน localStorage
 ══════════════════════════════════ */
 function openConfirm(id) {
   const t=tickets.find(x=>x.id===id); if(!t||t.isUsed)return;
@@ -1200,33 +1221,46 @@ function openConfirm(id) {
   document.getElementById('confirmDesc').textContent=`${t.icon}  ${t.desc}`;
   document.getElementById('confirmOverlay').classList.add('active');
 }
-function confirmUse() {
+window.openConfirm = openConfirm;
+
+async function confirmUse() {
   const t=tickets.find(x=>x.id===pendingUseId); if(!t)return;
   t.isUsed=true; t.usedAt=new Date().toISOString();
-  saveTickets(); closeOverlay('confirmOverlay'); renderAll();
+  await update(ref(db,`tickets/${t.id}`), { isUsed:true, usedAt:t.usedAt });
+  closeOverlay('confirmOverlay');
   showToast('🎫',`Ticket ${t.id} Used`);
+  // renderAll จะถูกเรียกโดย onValue อัตโนมัติ
 }
-function resetTicket(id) {
-  const t=tickets.find(x=>x.id===id); if(!t)return;
-  t.isUsed=false; t.usedAt=null;
-  saveTickets(); renderAll(); showToast('🔄',`Ticket ${t.id} Reset`);
+window.confirmUse = confirmUse;
+
+async function resetTicket(id) {
+  await update(ref(db,`tickets/${id}`), { isUsed:false, usedAt:null });
+  showToast('🔄',`Ticket ${id} Reset`);
 }
+window.resetTicket = resetTicket;
+
 function openDeleteModal(id) {
   const t=tickets.find(x=>x.id===id); if(!t)return;
   pendingDeleteId=id;
   document.getElementById('deleteDesc').textContent=`${t.icon}  ${t.desc}`;
   document.getElementById('deleteOverlay').classList.add('active');
 }
-function confirmDelete() {
-  tickets=tickets.filter(x=>x.id!==pendingDeleteId);
-  saveTickets(); closeOverlay('deleteOverlay'); renderAll();
+window.openDeleteModal = openDeleteModal;
+
+async function confirmDelete() {
+  await remove(ref(db,`tickets/${pendingDeleteId}`));
+  closeOverlay('deleteOverlay');
   showToast('🗑️','Ticket Deleted');
 }
+window.confirmDelete = confirmDelete;
+
 function openAddModal() {
   ['addIcon','addTitle','addDesc','addNote'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('addOverlay').classList.add('active');
 }
-function confirmAdd() {
+window.openAddModal = openAddModal;
+
+async function confirmAdd() {
   const icon  = document.getElementById('addIcon').value.trim()||'🎁';
   const title = document.getElementById('addTitle').value.trim().toUpperCase()||'SPECIAL PASS';
   const desc  = document.getElementById('addDesc').value.trim();
@@ -1234,10 +1268,13 @@ function confirmAdd() {
   if(!desc){ alert('กรุณากรอกรายละเอียด'); return; }
   const max=tickets.reduce((m,t)=>{const n=parseInt(t.id.replace(/\D/g,''))||0;return Math.max(m,n);},0);
   const newId='BT-'+String(max+1).padStart(2,'0');
-  tickets.push({id:newId,icon,title,desc,note:note||null,isUsed:false,usedAt:null});
-  saveTickets(); closeOverlay('addOverlay'); renderAll();
+  const newTicket={id:newId,icon,title,desc,note:note||null,isUsed:false,usedAt:null};
+  await set(ref(db,`tickets/${newId}`), newTicket);
+  closeOverlay('addOverlay');
   showToast('➕',`Add Ticket ${newId} Done`);
 }
+window.confirmAdd = confirmAdd;
+
 function openEditModal(id) {
   const t=tickets.find(x=>x.id===id); if(!t)return;
   pendingEditId=id;
@@ -1248,20 +1285,25 @@ function openEditModal(id) {
   document.getElementById('editNote').value =t.note ||'';
   document.getElementById('editOverlay').classList.add('active');
 }
-function confirmEdit() {
+window.openEditModal = openEditModal;
+
+async function confirmEdit() {
   const t=tickets.find(x=>x.id===pendingEditId); if(!t)return;
   const icon =document.getElementById('editIcon').value.trim();
   const title=document.getElementById('editTitle').value.trim().toUpperCase();
   const desc =document.getElementById('editDesc').value.trim();
   const note =document.getElementById('editNote').value.trim();
   if(!desc){ alert('กรุณากรอกรายละเอียด'); return; }
-  t.icon =icon ||t.icon;
-  t.title=title||t.title;
-  t.desc =desc;
-  t.note =note||null;
-  saveTickets(); closeOverlay('editOverlay'); renderAll();
+  await update(ref(db,`tickets/${t.id}`), {
+    icon : icon ||t.icon,
+    title: title||t.title,
+    desc,
+    note : note||null
+  });
+  closeOverlay('editOverlay');
   showToast('✏️',`แก้ไข ${t.id} เรียบร้อย`);
 }
+window.confirmEdit = confirmEdit;
 
 /* ══════════════════════════════════
    TABS
@@ -1277,11 +1319,13 @@ function switchTab(tab) {
   if(tab==='history')renderHistory();
   if(tab==='manage') renderManage();
 }
+window.switchTab = switchTab;
 
 /* ══════════════════════════════════
    UTILS
 ══════════════════════════════════ */
 function closeOverlay(id){ document.getElementById(id).classList.remove('active'); }
+window.closeOverlay = closeOverlay;
 document.querySelectorAll('.overlay').forEach(el=>{
   el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('active'); });
 });
@@ -1295,12 +1339,19 @@ function showToast(icon,msg){
   clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>el.classList.remove('show'),3000);
 }
+
 function fmtDate(iso){
   return new Date(iso).toLocaleString('th-TH',{
     day:'2-digit',month:'short',year:'numeric',
     hour:'2-digit',minute:'2-digit'
   });
 }
+
+/* ══════════════════════════════════
+   START — เปิด real-time listener ทันที
+══════════════════════════════════ */
+startRealtimeListener();
+
 </script>
 </body>
 </html>
