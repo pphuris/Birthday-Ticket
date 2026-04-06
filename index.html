@@ -527,6 +527,8 @@ body {
 .btn-reset:hover  { background:var(--blue); color:#fff; }
 .btn-delete { border-color:var(--red); color:var(--red); background:transparent; }
 .btn-delete:hover { background:var(--red); color:#fff; }
+.btn-edit   { border-color:var(--gold); color:var(--gold); background:transparent; }
+.btn-edit:hover   { background:var(--gold); color:#fff; }
 
 /* ═══════════════════════════════════════
    MODALS  (V2 style)
@@ -930,6 +932,38 @@ body {
   </div>
 </div>
 
+<!-- EDIT TICKET -->
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-title" id="editModalTitle">Edit Ticket</div>
+      <div class="modal-header-icon">✏️</div>
+    </div>
+    <div class="modal-body-wrap">
+      <div class="form-row">
+        <label class="form-label">Icon (Emoji)</label>
+        <input class="form-input" id="editIcon" maxlength="4">
+      </div>
+      <div class="form-row">
+        <label class="form-label">ชื่อย่อ (Title)</label>
+        <input class="form-input" id="editTitle">
+      </div>
+      <div class="form-row">
+        <label class="form-label">รายละเอียด</label>
+        <textarea class="form-textarea" id="editDesc"></textarea>
+      </div>
+      <div class="form-row">
+        <label class="form-label">⚠︎ หมายเหตุ / เงื่อนไข (ถ้ามี)</label>
+        <input class="form-input" id="editNote" placeholder="เช่น ใช้ได้ครั้งเดียว · หมดอายุ 31 Dec 2025">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel2" onclick="closeOverlay('editOverlay')">Cancel</button>
+        <button class="btn-ok" onclick="confirmEdit()">💾 Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast">
   <span id="toastIcon">✅</span>
@@ -960,6 +994,7 @@ let currentRole  = 'user';
 let tickets = [];
 let pendingUseId = null;
 let pendingDeleteId = null;
+let pendingEditId   = null;
 
 function saveTickets() { localStorage.setItem('tb_v4_tickets', JSON.stringify(tickets)); }
 function loadTickets() {
@@ -1147,6 +1182,7 @@ function renderManage() {
           <td style="color:var(--muted);font-size:12px">${t.desc}</td>
           <td><span class="${t.isUsed?'badge-used':'badge-avail'}">${t.isUsed?'Used':'Available'}</span></td>
           <td>
+            <button class="btn-action btn-edit" onclick="openEditModal('${t.id}')">✏️ Edit</button>
             ${t.isUsed?`<button class="btn-action btn-reset" onclick="resetTicket('${t.id}')">↺ Reset</button>`:''}
             <button class="btn-action btn-delete" onclick="openDeleteModal('${t.id}')">🗑 Delete</button>
           </td>
@@ -1201,6 +1237,30 @@ function confirmAdd() {
   tickets.push({id:newId,icon,title,desc,note:note||null,isUsed:false,usedAt:null});
   saveTickets(); closeOverlay('addOverlay'); renderAll();
   showToast('➕',`Add Ticket ${newId} Done`);
+}
+function openEditModal(id) {
+  const t=tickets.find(x=>x.id===id); if(!t)return;
+  pendingEditId=id;
+  document.getElementById('editModalTitle').textContent=`Edit — ${t.id}`;
+  document.getElementById('editIcon').value =t.icon ||'';
+  document.getElementById('editTitle').value=t.title||'';
+  document.getElementById('editDesc').value =t.desc ||'';
+  document.getElementById('editNote').value =t.note ||'';
+  document.getElementById('editOverlay').classList.add('active');
+}
+function confirmEdit() {
+  const t=tickets.find(x=>x.id===pendingEditId); if(!t)return;
+  const icon =document.getElementById('editIcon').value.trim();
+  const title=document.getElementById('editTitle').value.trim().toUpperCase();
+  const desc =document.getElementById('editDesc').value.trim();
+  const note =document.getElementById('editNote').value.trim();
+  if(!desc){ alert('กรุณากรอกรายละเอียด'); return; }
+  t.icon =icon ||t.icon;
+  t.title=title||t.title;
+  t.desc =desc;
+  t.note =note||null;
+  saveTickets(); closeOverlay('editOverlay'); renderAll();
+  showToast('✏️',`แก้ไข ${t.id} เรียบร้อย`);
 }
 
 /* ══════════════════════════════════
